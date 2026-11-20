@@ -17,32 +17,32 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 2. Java 17 o'rnatish
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 3. Android SDK sozlash
-        uses: android-actions/setup-android@v3
-
-      - name: 4. Android Build-Tools va Platform o'rnatish
+      - name: 3. Android SDK litsenziyalari va Build-Tools 34 o'rnatish
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34"
+          ANDROID_SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$ANDROID_SDK" >> $GITHUB_ENV
+          SDKMANAGER="$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" "platform-tools" "build-tools;34.0.0" "platforms;android-34"
 
-      - name: 5. Godot 4.3 va Export shablonlarini yuklash
+      - name: 4. Godot 4.3 va Export shablonlarini yuklash
         run: |
           mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
           wget -q https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
           unzip -q Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
-          mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
-          chmod +x /usr/local/bin/godot
+          sudo mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
 
           wget -q https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz
           unzip -q Godot_v${GODOT_VERSION}-stable_export_templates.tpz
           mv templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
 
-      - name: 6. Debug Keystore va Godot Editor sozlamalarini yaratish
+      - name: 5. Debug Keystore va Godot sozlamalarini yaratish
         run: |
           mkdir -p ~/.config/godot
           keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
@@ -56,14 +56,14 @@ jobs:
           export/android/debug_keystore_pass = "android"
           EOF
 
-      - name: 7. Resurslarni import qilish va APK yig'ish
+      - name: 6. Resurslarni import qilish va APK yig'ish
         run: |
           mkdir -p build
-          godot --headless --import || true
-          godot --headless --verbose --export-debug "Android" build/mantiqiy_orol_3d.apk
+          godot --headless --path . --import || true
+          godot --headless --path . --verbose --export-debug "Android" build/mantiqiy_orol_3d.apk
           ls -lh build/mantiqiy_orol_3d.apk
 
-      - name: 8. Tayyor APK faylini yuklash (Artifact)
+      - name: 7. Tayyor APK faylini yuklash (Artifact)
         uses: actions/upload-artifact@v4
         with:
           name: MantiqiyOrol3D-Android-APK
